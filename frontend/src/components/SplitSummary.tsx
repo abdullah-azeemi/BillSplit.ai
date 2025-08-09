@@ -1,4 +1,4 @@
-import { Users, DollarSign, Crown } from "lucide-react"
+import { Users, DollarSign } from "lucide-react"
 
 interface SplitSummaryProps {
   totals: Record<string, number>
@@ -11,10 +11,6 @@ export default function SplitSummary({ totals }: SplitSummaryProps) {
     .reduce((sum, amount) => sum + amount, 0)
 
   const entries = Object.entries(totals)
-  const top3 = [...entries]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, Math.min(3, entries.length))
-  const top3Names = new Set(top3.map(([name]) => name))
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
@@ -22,24 +18,6 @@ export default function SplitSummary({ totals }: SplitSummaryProps) {
         <Users className="w-6 h-6 text-emerald-600" />
         <h2 className="text-xl font-semibold text-gray-900">Split Summary</h2>
       </div>
-
-      {/* Top 3 bar */}
-      {top3.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-3">
-          {top3.map(([person, amount], idx) => (
-            <div
-              key={person}
-              className={`flex items-center gap-2 px-3 py-2 rounded-full border ${
-                amount > 0 ? "border-amber-300 bg-amber-50" : "border-gray-200 bg-gray-50"
-              }`}
-            >
-              <Crown className={`w-4 h-4 ${idx === 0 ? "text-amber-500" : "text-amber-400"}`} />
-              <span className="text-sm font-medium text-gray-900">{idx + 1}. {person}</span>
-              <span className="text-sm font-semibold text-emerald-700">${amount.toFixed(2)}</span>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Grid of all people, 3 per row */}
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">

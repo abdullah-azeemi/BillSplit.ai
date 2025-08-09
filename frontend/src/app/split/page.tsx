@@ -5,13 +5,11 @@ import ItemAssignmentTable from "../../components/ItemAssignmentTable"
 import SplitSummary from "../../components/SplitSummary"
 import Button from "../../components/Button"
 
-const mockUsers = ["Ali", "Sara", "Ahmed"]
-
 export default function SplitPage() {
   const [assignments, setAssignments] = useState<Record<string, string>>({})
   const [items, setItems] = useState<{ id: string; name: string; price: number }[]>([])
   const [totals, setTotals] = useState<{ subtotal: number; tax: number; total: number }>({ subtotal: 0, tax: 0, total: 0 })
-  const [people, setPeople] = useState<string[]>([...mockUsers])
+  const [people, setPeople] = useState<string[]>([])
   const [newPerson, setNewPerson] = useState("")
 
   // Load parsed data from sessionStorage
@@ -37,7 +35,7 @@ export default function SplitPage() {
 
   const calculateTotals = useCallback(() => {
     const t: Record<string, number> = {}
-    mockUsers.forEach((user) => {
+    people.forEach((user) => {
       t[user] = 0
     })
     items.forEach((item) => {
@@ -47,7 +45,7 @@ export default function SplitPage() {
       }
     })
     return t
-  }, [assignments, items])
+  }, [assignments, items, people])
 
   const perPersonTotals = useMemo(() => calculateTotals(), [calculateTotals])
 
@@ -66,6 +64,17 @@ export default function SplitPage() {
     if (people.includes(name)) return
     setPeople((p) => [...p, name])
     setNewPerson("")
+  }
+
+  const handleRemovePerson = (name: string) => {
+    setPeople((prev) => prev.filter((p) => p !== name))
+    setAssignments((prev) => {
+      const next: Record<string, string> = {}
+      Object.entries(prev).forEach(([itemId, person]) => {
+        if (person !== name) next[itemId] = person
+      })
+      return next
+    })
   }
 
   const handleExportPDF = () => {
@@ -97,9 +106,28 @@ export default function SplitPage() {
       <div className="mb-8">
         <SplitSummary totals={perPersonTotals} />
 
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 border rounded-lg">
-            <div className="font-semibold mb-3">People</div>
+        <div className="mt-6 space-y-4">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full">
+            <div className="font-semibold text-gray-900 mb-3">People</div>
+            {people.length === 0 ? (
+              <div className="text-sm text-gray-500 mb-3">No people yet. Add someone below.</div>
+            ) : (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {people.map((p) => (
+                  <span key={p} className="flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-emerald-200 bg-emerald-50 text-emerald-800">
+                    {p}
+                    <button
+                      type="button"
+                      aria-label={`Remove ${p}`}
+                      onClick={() => handleRemovePerson(p)}
+                      className="text-emerald-700 hover:text-emerald-900"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
             <div className="flex gap-2">
               <input
                 type="text"
@@ -116,41 +144,50 @@ export default function SplitPage() {
                 Add
               </button>
             </div>
-            <div className="mt-3 text-sm text-gray-700">{people.join(", ")}</div>
           </div>
 
-          <div className="p-4 border rounded-lg md:col-span-2">
-            <div className="font-semibold mb-3">Totals</div>
-            <div className="grid grid-cols-3 gap-3">
+        
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full">
+            <div className="font-semibold text-gray-900 mb-3">Totals</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Subtotal</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={totals.subtotal}
-                  onChange={(e) => setTotals((t) => ({ ...t, subtotal: parseFloat(e.target.value || "0") }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                />
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={totals.subtotal}
+                    onChange={(e) => setTotals((t) => ({ ...t, subtotal: parseFloat(e.target.value || "0") }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Tax</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={totals.tax}
-                  onChange={(e) => setTotals((t) => ({ ...t, tax: parseFloat(e.target.value || "0") }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                />
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={totals.tax}
+                    onChange={(e) => setTotals((t) => ({ ...t, tax: parseFloat(e.target.value || "0") }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Total</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={totals.total}
-                  onChange={(e) => setTotals((t) => ({ ...t, total: parseFloat(e.target.value || "0") }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                />
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={totals.total}
+                    onChange={(e) => setTotals((t) => ({ ...t, total: parseFloat(e.target.value || "0") }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
               </div>
             </div>
           </div>

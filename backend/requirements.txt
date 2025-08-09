@@ -1,10 +1,10 @@
 fastapi 
 uvicorn 
 python-multipart 
-paddleocr 
-paddlepaddle
 opencv-python 
 pydantic
 numpy
 setuptools
-easyocr
+easyocr 
+rapidocr-onnxruntime
+onnxruntime

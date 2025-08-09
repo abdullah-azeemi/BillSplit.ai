@@ -8,23 +8,36 @@ import ReceiptPreview from "../components/ReceiptPreview"
 
 export default function HomePage() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const router = useRouter()
 
-  const handleImageUpload = (imageUrl: string) => {
+  const handleImageUpload = (imageUrl: string, file: File) => {
     setUploadedImage(imageUrl)
+    setUploadedFile(file)
   }
 
   const handleAnalyze = async () => {
-    if (!uploadedImage) return
+    if (!uploadedFile) return
 
     setIsAnalyzing(true)
-
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const form = new FormData()
+      form.append("file", uploadedFile)
+      const res = await fetch("http://127.0.0.1:8000/receipt/parse", {
+        method: "POST",
+        body: form,
+      })
+      if (!res.ok) throw new Error("Backend error")
+      const data = await res.json()
+      sessionStorage.setItem("parsedReceipt", JSON.stringify(data))
       setIsAnalyzing(false)
       router.push("/split")
-    }, 2000)
+    } catch (e) {
+      console.error(e)
+      setIsAnalyzing(false)
+      alert("Failed to analyze receipt. Is the backend running on :8000?")
+    }
   }
 
   return (

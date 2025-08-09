@@ -1,23 +1,32 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import ItemAssignmentTable from "../../components/ItemAssignmentTable"
 import SplitSummary from "../../components/SplitSummary"
 import Button from "../../components/Button"
-
-// Mock data
-const mockItems = [
-  { id: "1", name: "Margherita Pizza", price: 18.99 },
-  { id: "2", name: "Caesar Salad", price: 12.5 },
-  { id: "3", name: "Garlic Bread", price: 6.99 },
-  { id: "4", name: "Coca Cola", price: 3.5 },
-  { id: "5", name: "Tiramisu", price: 8.99 },
-]
 
 const mockUsers = ["Ali", "Sara", "Ahmed"]
 
 export default function SplitPage() {
   const [assignments, setAssignments] = useState<Record<string, string>>({})
+  const [items, setItems] = useState<{ id: string; name: string; price: number }[]>([])
+  const [totals, setTotals] = useState<{ subtotal: number; tax: number; total: number }>({ subtotal: 0, tax: 0, total: 0 })
+  const [people, setPeople] = useState<string[]>([...mockUsers])
+  const [newPerson, setNewPerson] = useState("")
+
+  // Load parsed data from sessionStorage
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("parsedReceipt")
+      if (!raw) return
+      const data = JSON.parse(raw) as { items: { name: string; price: number }[]; subtotal: number; tax: number; total: number }
+      const withIds = data.items.map((it, idx) => ({ id: String(idx + 1), name: it.name, price: it.price }))
+      setItems(withIds)
+      setTotals({ subtotal: data.subtotal ?? 0, tax: data.tax ?? 0, total: data.total ?? 0 })
+    } catch (e) {
+      console.error("Failed to parse stored receipt", e)
+    }
+  }, [])
 
   const handleAssignmentChange = (itemId: string, person: string) => {
     setAssignments((prev) => ({
@@ -26,20 +35,37 @@ export default function SplitPage() {
     }))
   }
 
-  const calculateTotals = () => {
-    const totals: Record<string, number> = {}
+  const calculateTotals = useCallback(() => {
+    const t: Record<string, number> = {}
     mockUsers.forEach((user) => {
-      totals[user] = 0
+      t[user] = 0
     })
-
-    mockItems.forEach((item) => {
+    items.forEach((item) => {
       const assignedTo = assignments[item.id]
-      if (assignedTo && totals[assignedTo] !== undefined) {
-        totals[assignedTo] += item.price
+      if (assignedTo && t[assignedTo] !== undefined) {
+        t[assignedTo] += item.price
       }
     })
+    return t
+  }, [assignments, items])
 
-    return totals
+  const perPersonTotals = useMemo(() => calculateTotals(), [calculateTotals])
+
+  const handleItemChange = (itemId: string, patch: Partial<{ name: string; price: number }>) => {
+    setItems((prev) => prev.map((it) => (it.id === itemId ? { ...it, ...patch } : it)))
+  }
+
+  const handleAddItem = () => {
+    const nextId = String((items.length ? Math.max(...items.map((i) => Number(i.id))) : 0) + 1)
+    setItems((prev) => [...prev, { id: nextId, name: "New item", price: 0 }])
+  }
+
+  const handleAddPerson = () => {
+    const name = newPerson.trim()
+    if (!name) return
+    if (people.includes(name)) return
+    setPeople((p) => [...p, name])
+    setNewPerson("")
   }
 
   const handleExportPDF = () => {
@@ -58,16 +84,77 @@ export default function SplitPage() {
       {/* Assignment Table */}
       <div className="mb-8">
         <ItemAssignmentTable
-          items={mockItems}
-          users={mockUsers}
+          items={items}
+          users={people}
           assignments={assignments}
           onAssignmentChange={handleAssignmentChange}
+          onItemChange={handleItemChange}
+          onAddItem={handleAddItem}
         />
       </div>
 
       {/* Split Summary */}
       <div className="mb-8">
-        <SplitSummary totals={calculateTotals()} />
+        <SplitSummary totals={perPersonTotals} />
+
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 border rounded-lg">
+            <div className="font-semibold mb-3">People</div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newPerson}
+                onChange={(e) => setNewPerson(e.target.value)}
+                placeholder="Add person..."
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+              <button
+                type="button"
+                onClick={handleAddPerson}
+                className="px-3 py-2 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+              >
+                Add
+              </button>
+            </div>
+            <div className="mt-3 text-sm text-gray-700">{people.join(", ")}</div>
+          </div>
+
+          <div className="p-4 border rounded-lg md:col-span-2">
+            <div className="font-semibold mb-3">Totals</div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Subtotal</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={totals.subtotal}
+                  onChange={(e) => setTotals((t) => ({ ...t, subtotal: parseFloat(e.target.value || "0") }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Tax</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={totals.tax}
+                  onChange={(e) => setTotals((t) => ({ ...t, tax: parseFloat(e.target.value || "0") }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Total</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={totals.total}
+                  onChange={(e) => setTotals((t) => ({ ...t, total: parseFloat(e.target.value || "0") }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Actions */}

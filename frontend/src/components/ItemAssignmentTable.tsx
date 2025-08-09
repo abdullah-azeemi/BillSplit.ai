@@ -13,6 +13,8 @@ interface ItemAssignmentTableProps {
   users: string[]
   assignments: Record<string, string>
   onAssignmentChange: (itemId: string, person: string) => void
+  onItemChange: (itemId: string, patch: Partial<Pick<Item, "name" | "price">>) => void
+  onAddItem: () => void
 }
 
 export default function ItemAssignmentTable({
@@ -20,6 +22,8 @@ export default function ItemAssignmentTable({
   users,
   assignments,
   onAssignmentChange,
+  onItemChange,
+  onAddItem,
 }: ItemAssignmentTableProps) {
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -43,10 +47,26 @@ export default function ItemAssignmentTable({
             {items.map((item) => (
               <tr key={item.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{item.name}</div>
+                  <input
+                    type="text"
+                    value={item.name}
+                    onChange={(e) => onItemChange(item.id, { name: e.target.value })}
+                    className="w-full max-w-xs text-sm font-medium text-gray-900 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Item name"
+                  />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">${item.price.toFixed(2)}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      inputMode="decimal"
+                      value={Number.isFinite(item.price) ? item.price : 0}
+                      onChange={(e) => onItemChange(item.id, { price: parseFloat(e.target.value || "0") })}
+                      className="w-28 text-sm text-gray-900 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="relative">
@@ -67,6 +87,19 @@ export default function ItemAssignmentTable({
                 </td>
               </tr>
             ))}
+            <tr>
+              <td className="px-6 py-4">
+                <button
+                  type="button"
+                  onClick={onAddItem}
+                  className="text-emerald-700 text-sm font-semibold hover:underline"
+                >
+                  + Add item
+                </button>
+              </td>
+              <td />
+              <td />
+            </tr>
           </tbody>
         </table>
       </div>

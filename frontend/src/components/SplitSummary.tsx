@@ -1,4 +1,4 @@
-import { Users, DollarSign } from "lucide-react"
+import { Users, DollarSign, Crown } from "lucide-react"
 
 interface SplitSummaryProps {
   totals: Record<string, number>
@@ -10,6 +10,12 @@ export default function SplitSummary({ totals }: SplitSummaryProps) {
     .filter((amount) => amount > 0)
     .reduce((sum, amount) => sum + amount, 0)
 
+  const entries = Object.entries(totals)
+  const top3 = [...entries]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, Math.min(3, entries.length))
+  const top3Names = new Set(top3.map(([name]) => name))
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <div className="flex items-center gap-2 mb-6">
@@ -17,8 +23,27 @@ export default function SplitSummary({ totals }: SplitSummaryProps) {
         <h2 className="text-xl font-semibold text-gray-900">Split Summary</h2>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {Object.entries(totals).map(([person, amount]) => (
+      {/* Top 3 bar */}
+      {top3.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-3">
+          {top3.map(([person, amount], idx) => (
+            <div
+              key={person}
+              className={`flex items-center gap-2 px-3 py-2 rounded-full border ${
+                amount > 0 ? "border-amber-300 bg-amber-50" : "border-gray-200 bg-gray-50"
+              }`}
+            >
+              <Crown className={`w-4 h-4 ${idx === 0 ? "text-amber-500" : "text-amber-400"}`} />
+              <span className="text-sm font-medium text-gray-900">{idx + 1}. {person}</span>
+              <span className="text-sm font-semibold text-emerald-700">${amount.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Grid of all people, 3 per row */}
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+        {entries.map(([person, amount]) => (
           <div
             key={person}
             className={`p-4 rounded-lg border-2 transition-all duration-200 ${
